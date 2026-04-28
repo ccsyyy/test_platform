@@ -1,4 +1,4 @@
-# Test Platform Scripts
+# Test Platform
 
 根目录脚本用于统一管理本地开发环境中的三个服务：
 
@@ -8,54 +8,232 @@
 
 所有脚本均为 Windows PowerShell / CMD 入口，默认在项目根目录执行。
 
-## 服务说明
+## 目录说明
 
-### 1. Backend server
+- `backend`：管理台 API、执行任务入队、执行结果查询、静态管理台页面
+- `agent`：本地录制服务，供管理台发起录制和健康检查
+- `database`：MySQL 初始化脚本与 Redis keyspace 说明
+- `scripts`：基础设施初始化脚本
 
-对应命令：
+## 启动前准备
+
+### 1. 安装依赖
+
+根目录没有统一的 `package.json`，需要分别安装：
 
 ```powershell
 cd backend
+npm install
+
+cd ..\agent
+npm install
+```
+
+### 2. 准备环境变量
+
+后端需要本地 `.env`：
+
+```powershell
+cd ..\backend
+Copy-Item .env.example .env
+```
+
+然后修改 `backend/.env` 中至少这些配置：
+
+- `MYSQL_HOST`
+- `MYSQL_PORT`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `REDIS_PASSWORD`
+- `JWT_SECRET`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+
+`agent` 默认可以直接使用 [agent/.env.example](/D:/03_Project/Test/test_platform/agent/.env.example) 作为参考；如果你需要本地独立配置，可以自行复制为 `agent/.env`。
+
+### 3. 准备 MySQL 和 Redis
+
+在启动项目之前，先确保：
+
+- MySQL 可连接
+- Redis 可连接
+- MySQL 用户有建库建表权限
+
+### 4. 初始化数据库结构
+
+方式一：直接执行 SQL 脚本
+
+```powershell
+mysql -h <MYSQL_HOST> -P <MYSQL_PORT> -u <MYSQL_USER> -p < D:\03_Project\Test\test_platform\database\init_mysql.sql
+```
+
+这个脚本会：
+
+- 创建 `test_platform` 数据库
+- 初始化平台基础表、项目表、元素表、执行表等
+
+方式二：使用仓库脚本初始化 MySQL 和 Redis 元数据
+
+先安装 Python 依赖：
+
+```powershell
+pip install pymysql redis
+```
+
+再设置环境变量并执行：
+
+```powershell
+$env:TP_MYSQL_HOST="<MYSQL_HOST>"
+$env:TP_MYSQL_PORT="<MYSQL_PORT>"
+$env:TP_MYSQL_USER="<MYSQL_USER>"
+$env:TP_MYSQL_PASSWORD="<MYSQL_PASSWORD>"
+$env:TP_REDIS_HOST="<REDIS_HOST>"
+$env:TP_REDIS_PORT="<REDIS_PORT>"
+$env:TP_REDIS_PASSWORD="<REDIS_PASSWORD>"
+python .\scripts\init_infra.py
+```
+
+### 5. 创建管理员账号
+
+```powershell
+cd D:\03_Project\Test\test_platform\backend
+npm run create:admin
+```
+
+该命令会按照 `backend/.env` 中的 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 创建或重置管理员账号。
+
+### 6. 初始化示例项目数据
+
+```powershell
+cd D:\03_Project\Test\test_platform\backend
+npm run seed:smoke
+```
+
+该命令会幂等创建一套最小可跑通的数据：
+
+- 项目：`smoke-demo`
+- 环境：`local-api`
+- 页面：`/demo/login`
+- 一组基础元素
+- 用例：`SMOKE_LOGIN_001`
+
+如果你只是想先验证“任务能否跑通”，建议执行这一步。
+
+### 7. 安装 Playwright 浏览器
+
+如果本机还没有可用浏览器，先执行：
+
+```powershell
+cd D:\03_Project\Test\test_platform\backend
+npx playwright install chromium
+```
+
+如果你准备直接使用本机已安装的 Chrome 或 Edge，也可以在执行任务时切换浏览器。
+
+## 按顺序启动整个项目
+
+### 方式一：推荐，直接用根目录脚本
+
+#### 第 1 步：启动 backend 和 worker
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\start-dev.ps1
+```
+
+这一步会同时启动：
+
+- Backend server
+- Execution worker
+
+#### 第 2 步：启动 agent
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\start-agent.ps1
+```
+
+#### 第 3 步：检查服务状态
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\status-all.ps1
+```
+
+#### 第 4 步：打开管理台
+
+- 管理台首页：`http://localhost:3000/`
+- 后端健康检查：`http://localhost:3000/health`
+- Agent 健康检查：`http://127.0.0.1:37665/health`
+
+### 方式二：一步启动全部服务
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\start-all.ps1
+```
+
+这个脚本内部会先启动 `backend + worker`，再启动 `agent`。
+
+## 手动启动顺序
+
+如果你不想用根目录脚本，也可以手动按顺序开三个进程：
+
+### 1. 启动 backend API
+
+```powershell
+cd D:\03_Project\Test\test_platform\backend
 npm run dev
 ```
 
-用途：
-
-- 提供登录、项目、录制、元素、用例、执行任务、报告等管理台 API
-- 默认监听 `http://localhost:3000`
-
-### 2. Execution worker
-
-对应命令：
+### 2. 启动 execution worker
 
 ```powershell
-cd backend
+cd D:\03_Project\Test\test_platform\backend
 npm run worker:dev
 ```
 
-用途：
-
-- 消费 Redis 执行队列
-- 负责真正运行 Playwright 用例
-- 如果这个服务没启动，执行任务会一直停留在 `queued`
-
-### 3. Agent server
-
-对应命令：
+### 3. 编译并启动 agent
 
 ```powershell
-cd agent
+cd D:\03_Project\Test\test_platform\agent
 npm run build
 npm run serve:start
 ```
 
-用途：
+## 停止服务
 
-- 提供本地 `Agent` HTTP 服务
-- 供管理台发起录制、停止录制、检测健康状态
-- 默认监听 `http://127.0.0.1:37665`
+### 停止全部服务
 
-## 根目录脚本
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\stop-all.ps1
+```
+
+### 只停止 backend 和 worker
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\stop-dev.ps1
+```
+
+### 只停止 agent
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\stop-agent.ps1
+```
+
+## 日志位置
+
+### Backend 日志
+
+- `backend/logs/dev-server.out.log`
+- `backend/logs/dev-server.err.log`
+- `backend/logs/worker-dev.out.log`
+- `backend/logs/worker-dev.err.log`
+
+### Agent 日志
+
+- `agent/logs/agent-dev.out.log`
+- `agent/logs/agent-dev.err.log`
+
+## 根目录脚本说明
 
 ### 公共工具
 
@@ -91,98 +269,6 @@ npm run serve:start
 | `start-all.cmd` | `start-all.ps1` 的 CMD 包装入口 |
 | `stop-all.cmd` | `stop-all.ps1` 的 CMD 包装入口 |
 | `status-all.cmd` | `status-all.ps1` 的 CMD 包装入口 |
-
-## 推荐用法
-
-### 启动全部服务
-
-```powershell
-.\start-all.ps1
-```
-
-或：
-
-```cmd
-start-all.cmd
-```
-
-### 停止全部服务
-
-```powershell
-.\stop-all.ps1
-```
-
-或：
-
-```cmd
-stop-all.cmd
-```
-
-### 查看全部服务状态
-
-```powershell
-.\status-all.ps1
-```
-
-或：
-
-```cmd
-status-all.cmd
-```
-
-### 只启动管理台和执行服务
-
-```powershell
-.\start-dev.ps1
-```
-
-### 只启动 Agent
-
-```powershell
-.\start-agent.ps1
-```
-
-## 日志位置
-
-### Backend 日志
-
-- `backend/logs/dev-server.out.log`
-- `backend/logs/dev-server.err.log`
-- `backend/logs/worker-dev.out.log`
-- `backend/logs/worker-dev.err.log`
-
-### Agent 日志
-
-- `agent/logs/agent-dev.out.log`
-- `agent/logs/agent-dev.err.log`
-
-## 脚本行为说明
-
-### 1. 避免重复启动
-
-`start-*.ps1` 会先检测对应服务是否已经存在，如果已经运行，不会重复拉起新的进程。
-
-### 2. 优雅停止
-
-`stop-*.ps1` 会先尝试正常停止进程。
-
-如果遇到 `tsx watch`、`esbuild`、`conhost` 等子进程残留，会继续按进程树清理，避免服务假死或端口被占用。
-
-### 3. 建议顺序
-
-日常开发推荐直接使用：
-
-```powershell
-.\start-all.ps1
-```
-
-结束时使用：
-
-```powershell
-.\stop-all.ps1
-```
-
-这样不用分别管理多个终端窗口。
 
 ## 备注
 
