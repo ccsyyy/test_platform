@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>自动化测试平台</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="login-view" class="login-view">
+        <div class="login-panel">
+          <p class="eyebrow">测试平台</p>
+          <h1>自动化测试管理平台</h1>
+          <label>
+            账号
+            <input id="username" autocomplete="username" value="admin" />
+          </label>
+          <label>
+            密码
+            <input id="password" type="password" autocomplete="current-password" />
+          </label>
+          <button id="login-button">登录系统</button>
+          <p id="login-message" class="message"></p>
+        </div>
+      </section>
+
+      <section id="dashboard-view" class="console hidden">
+        <aside class="sidebar">
+          <div class="brand">
+            <span class="brand-mark">TP</span>
+            <div class="brand-text">
+              <strong>测试平台</strong>
+              <small>Playwright Low Code</small>
+            </div>
+          </div>
+          <nav class="nav-menu" aria-label="主导航">
+            <button class="nav-item active" data-nav="overview" data-short="工"><span class="nav-text">工作台</span></button>
+            <button class="nav-item" data-nav="recordings" data-short="录"><span class="nav-text">录制管理</span></button>
+            <button class="nav-item" data-nav="elements" data-short="元"><span class="nav-text">元素库</span></button>
+            <button class="nav-item" data-nav="cases" data-short="例"><span class="nav-text">用例管理</span></button>
+            <button class="nav-item" data-nav="tasks" data-short="任"><span class="nav-text">执行任务</span></button>
+            <button class="nav-item" data-nav="reports" data-short="报"><span class="nav-text">测试报告</span></button>
+            <button class="nav-item" data-nav="members" data-short="员"><span class="nav-text">项目成员</span></button>
+            <button class="nav-item" data-nav="settings" data-short="设"><span class="nav-text">系统设置</span></button>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="sidebar-user">
+              <span>当前用户</span>
+              <strong id="current-user">-</strong>
+            </div>
+            <button id="sidebar-toggle" class="sidebar-toggle secondary small" title="收起或展开导航">‹</button>
+          </div>
+        </aside>
+
+        <section class="main-area">
+          <header class="topbar">
+            <div class="topbar-actions">
+              <div class="topbar-info">
+                <span>Agent</span>
+                <strong id="agent-status">未检测</strong>
+              </div>
+              <label class="topbar-field">
+                <span>项目</span>
+                <select id="project-select"></select>
+              </label>
+              <label class="topbar-field">
+                <span>环境</span>
+                <select id="environment-select"></select>
+              </label>
+              <button id="refresh-button" class="secondary">刷新数据</button>
+              <button id="logout-button" class="secondary">退出登录</button>
+            </div>
+          </header>
+
+          <section id="status-strip" class="status-strip">
+            <div>
+              <span>录制会话</span>
+              <strong id="recording-count">0</strong>
+              <small id="recording-meta">暂无录制</small>
+            </div>
+            <div>
+              <span>元素</span>
+              <strong id="element-count">0</strong>
+              <small id="element-meta">暂无元素</small>
+            </div>
+            <div>
+              <span>用例</span>
+              <strong id="case-count">0</strong>
+              <small id="case-meta">暂无用例</small>
+            </div>
+            <div>
+              <span>执行任务</span>
+              <strong id="job-count">0</strong>
+              <small id="job-meta">暂无任务</small>
+            </div>
+            <div>
+              <span>测试报告</span>
+              <strong id="report-count">0</strong>
+              <small id="report-meta">暂无报告</small>
+            </div>
+          </section>
+
+          <section id="view-overview" class="view-section">
+            <div id="overview-grid" class="workspace"></div>
+          </section>
+
+          <section id="view-recordings" class="view-section hidden">
+            <div class="section-heading">
+              <h2>录制管理</h2>
+            </div>
+            <div class="workspace recording-workspace">
+              <div class="panel wide">
+                <div class="toolbar compact-toolbar recording-toolbar">
+                  <label>
+                    Agent 地址
+                    <input id="agent-url" value="http://127.0.0.1:37665" />
+                  </label>
+                  <label>
+                    录制 URL
+                    <input id="recording-url" value="" />
+                  </label>
+                  <label>
+                    浏览器
+                    <select id="recording-browser">
+                      <option value="chrome">Chrome</option>
+                      <option value="edge">Edge</option>
+                      <option value="chromium">Chromium</option>
+                    </select>
+                  </label>
+                  <div class="toolbar-spacer"></div>
+                  <p id="agent-message" class="meta agent-inline-message"></p>
+                  <button id="agent-health-button" class="secondary small">检测 Agent</button>
+                  <button id="start-recording-button" class="small">开始录制</button>
+                  <button id="stop-recording-button" class="danger small" disabled>停止录制</button>
+                </div>
+              </div>
+              <div class="panel wide">
+                <div class="toolbar compact-toolbar">
+                  <label>
+                    状态
+                    <select id="recording-status-filter">
+                      <option value="">全部状态</option>
+                      <option value="created">已创建</option>
+                      <option value="recording">录制中</option>
+                      <option value="stopped">已停止</option>
+                      <option value="materialized">已生成</option>
+                      <option value="failed">录制失败</option>
+                    </select>
+                  </label>
+                  <button id="recording-filter-button" class="secondary small">查询</button>
+                  <button id="recording-reset-button" class="secondary small">重置</button>
+                </div>
+                <div id="recording-list" class="list"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-elements" class="view-section hidden">
+            <div class="section-heading">
+              <h2>元素库</h2>
+            </div>
+            <div class="element-workspace">
+              <aside class="panel element-tree-panel">
+                <button id="element-tree-toggle" class="tree-panel-toggle secondary small" title="收起或展开元素树">‹</button>
+                <div id="element-tree" class="element-tree"></div>
+              </aside>
+              <div class="panel element-list-panel">
+                <div class="toolbar compact-toolbar">
+                  <label>
+                    关键字
+                    <input id="element-keyword" placeholder="请输入元素名称" />
+                  </label>
+                  <label>
+                    元素类型
+                    <select id="element-type-filter">
+                      <option value="">全部类型</option>
+                      <option value="input">input</option>
+                      <option value="password">password</option>
+                      <option value="button">button</option>
+                      <option value="select">select</option>
+                      <option value="text">text</option>
+                    </select>
+                  </label>
+                  <label>
+                    有效状态
+                    <select id="element-valid-filter">
+                      <option value="">全部状态</option>
+                      <option value="1">有效</option>
+                      <option value="0">无效</option>
+                      <option value="2">未验证</option>
+                    </select>
+                  </label>
+                  <button id="element-search-button" class="secondary small">查询</button>
+                  <button id="element-reset-button" class="secondary small">重置</button>
+                </div>
+                <div class="toolbar compact-toolbar element-create-toolbar">
+                  <div class="toolbar-spacer"></div>
+                  <button id="new-element-button" class="small">新增元素</button>
+                </div>
+                <div id="element-library" class="element-library"></div>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-cases" class="view-section hidden">
+            <div class="section-heading">
+              <h2>用例管理</h2>
+            </div>
+            <div class="panel">
+              <div class="toolbar compact-toolbar">
+                <label>
+                  关键字
+                  <input id="case-keyword" placeholder="请输入用例名称或编码" />
+                </label>
+                <label>
+                  用例分组
+                  <select id="case-group-filter"></select>
+                </label>
+                <button id="case-search-button" class="secondary small">查询</button>
+                <button id="case-reset-button" class="secondary small">重置</button>
+                <div class="toolbar-spacer"></div>
+                <button id="case-create-execution-button" class="secondary small">基于所选创建任务</button>
+                <button id="new-case-button" class="small">新建用例</button>
+              </div>
+              <div id="case-list" class="list-host"></div>
+            </div>
+          </section>
+
+          <section id="view-tasks" class="view-section hidden">
+            <div class="section-heading">
+              <h2>执行任务</h2>
+            </div>
+            <div class="panel table-panel">
+              <div class="toolbar compact-toolbar">
+                <label>
+                  关键字
+                  <input id="job-keyword" placeholder="请输入任务编号、环境或执行人" />
+                </label>
+                <label>
+                  状态
+                  <select id="job-status-filter">
+                    <option value="">全部状态</option>
+                    <option value="queued">排队中</option>
+                    <option value="running">执行中</option>
+                    <option value="passed">执行通过</option>
+                    <option value="failed">执行失败</option>
+                    <option value="canceled">已取消</option>
+                    <option value="timeout">超时</option>
+                  </select>
+                </label>
+                <button id="job-search-button" class="secondary small">查询</button>
+                <button id="job-reset-button" class="secondary small">重置</button>
+                <div class="toolbar-spacer"></div>
+                <button id="open-execution-modal-button" class="small">创建执行任务</button>
+              </div>
+              <div id="job-list" class="list-host"></div>
+            </div>
+          </section>
+
+          <section id="view-reports" class="view-section hidden">
+            <div class="section-heading">
+              <h2>测试报告</h2>
+            </div>
+            <div class="panel">
+              <div class="toolbar report-toolbar">
+                <label>
+                  开始时间
+                  <input id="report-from" type="date" />
+                </label>
+                <label>
+                  结束时间
+                  <input id="report-to" type="date" />
+                </label>
+                <label>
+                  执行人
+                <input id="report-executor" placeholder="请输入账号" />
+                </label>
+                <label>
+                  最低通过率
+                  <input id="report-pass-rate" type="number" min="0" max="100" placeholder="0-100" />
+                </label>
+                <button id="report-filter-button" class="secondary small">查询</button>
+                <button id="report-reset-button" class="secondary small">重置</button>
+              </div>
+              <div id="report-list"></div>
+            </div>
+          </section>
+
+          <section id="view-members" class="view-section hidden">
+            <div class="section-heading">
+              <h2>项目成员</h2>
+            </div>
+            <div class="panel">
+              <div class="toolbar compact-toolbar">
+                <label>
+                  关键字
+                  <input id="member-keyword" placeholder="请输入账号、姓名或邮箱" />
+                </label>
+                <label>
+                  成员状态
+                  <select id="member-status-filter">
+                    <option value="">全部状态</option>
+                    <option value="active">正常</option>
+                    <option value="disabled">禁用</option>
+                  </select>
+                </label>
+                <label>
+                  项目角色
+                  <select id="member-role-filter">
+                    <option value="">全部角色</option>
+                    <option value="project_admin">项目管理员</option>
+                    <option value="test_lead">测试负责人</option>
+                    <option value="tester">测试人员</option>
+                    <option value="viewer">只读成员</option>
+                  </select>
+                </label>
+                <button id="member-search-button" class="secondary small">查询</button>
+                <button id="member-reset-button" class="secondary small">重置</button>
+                <div class="toolbar-spacer"></div>
+                <button id="open-member-modal-button" class="small">添加成员</button>
+              </div>
+              <p id="member-message" class="meta"></p>
+              <div id="member-list" class="list-host"></div>
+            </div>
+          </section>
+
+          <section id="view-settings" class="view-section hidden">
+            <div class="section-heading">
+              <h2>系统设置</h2>
+            </div>
+            <div id="settings-panel" class="settings-panel"></div>
+          </section>
+        </section>
+      </section>
+
+      <section id="recording-event-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">录制事件</p>
+                <h2 id="recording-event-title">录制事件详情</h2>
+              <p id="recording-event-summary" class="meta"></p>
+            </div>
+              <button id="recording-event-close" class="secondary">关闭</button>
+          </div>
+          <div id="recording-event-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="materialize-notice-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">用例生成</p>
+              <h2 id="materialize-notice-title">生成用例</h2>
+              <p id="materialize-notice-summary" class="meta"></p>
+            </div>
+            <button id="materialize-notice-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <div class="project-form">
+              <p id="materialize-notice-message" class="meta"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="app-notice-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">系统提示</p>
+              <h2 id="app-notice-title">操作提示</h2>
+              <p id="app-notice-summary" class="meta"></p>
+            </div>
+            <button id="app-notice-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <p id="app-notice-message" class="meta"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="app-confirm-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">操作确认</p>
+              <h2 id="app-confirm-title">确认操作</h2>
+              <p id="app-confirm-summary" class="meta"></p>
+            </div>
+            <button id="app-confirm-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <p id="app-confirm-message" class="meta"></p>
+            <div class="actions">
+              <button id="app-confirm-ok" class="danger">确认</button>
+              <button id="app-confirm-cancel" class="secondary">取消</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="element-detail-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">元素信息</p>
+              <h2 id="element-detail-title">元素信息</h2>
+              <p id="element-detail-summary" class="meta"></p>
+            </div>
+            <button id="element-detail-close" class="secondary">关闭</button>
+          </div>
+          <div id="element-detail-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="tree-node-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">元素层级</p>
+              <h2 id="tree-node-modal-title">编辑节点</h2>
+              <p id="tree-node-modal-summary" class="meta"></p>
+            </div>
+            <button id="tree-node-modal-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <div class="project-form">
+              <label>
+                <span id="tree-node-modal-label">名称</span>
+                <input id="tree-node-name-input" autocomplete="off" />
+              </label>
+              <div class="actions">
+                <button id="tree-node-save-button">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="case-detail-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">测试用例</p>
+              <h2 id="case-detail-title">用例信息</h2>
+              <p id="case-detail-summary" class="meta"></p>
+            </div>
+            <button id="case-detail-close" class="secondary">关闭</button>
+          </div>
+          <div id="case-detail-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="element-picker-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">元素选择</p>
+              <h2>选择元素</h2>
+              <p class="meta">支持按页面、组件、元素名称和 Locator 检索。</p>
+            </div>
+            <button id="element-picker-close" class="secondary">关闭</button>
+          </div>
+          <div id="element-picker-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="job-detail-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">执行详情</p>
+              <h2 id="job-detail-title">执行任务信息</h2>
+              <p id="job-detail-summary" class="meta"></p>
+            </div>
+            <button id="job-detail-close" class="secondary">关闭</button>
+          </div>
+          <div id="job-detail-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="execution-create-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">执行任务</p>
+              <h2>创建执行任务</h2>
+              <p class="meta">请选择用例、环境和浏览器执行参数。</p>
+            </div>
+            <button id="execution-create-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <div class="execution-form">
+              <div class="execution-case-field">
+                选择用例
+                <div class="execution-case-transfer">
+                  <section class="transfer-pane">
+                    <div class="transfer-head">
+                      <strong>可选用例</strong>
+                      <select id="execution-module-filter"></select>
+                    </div>
+                    <div id="execution-case-source" class="transfer-list"></div>
+                  </section>
+                  <section class="transfer-pane">
+                    <div class="transfer-head">
+                      <strong>待执行用例</strong>
+                      <span id="execution-selected-count" class="meta">0 个</span>
+                    </div>
+                    <div id="execution-case-target" class="transfer-list"></div>
+                  </section>
+                </div>
+                <div class="case-order-actions hidden">
+                  <button id="execution-case-up" type="button" class="secondary small">上移</button>
+                  <button id="execution-case-down" type="button" class="secondary small">下移</button>
+                </div>
+              </div>
+              <div class="execution-grid">
+                <label>
+                  执行环境
+                  <select id="execution-environment-select"></select>
+                </label>
+                <label>
+                  浏览器
+                  <select id="execution-browser-select">
+                    <option value="chrome">Chrome</option>
+                    <option value="edge">Edge</option>
+                    <option value="chromium">Chromium</option>
+                  </select>
+                </label>
+                <label>
+                  重试次数
+                  <input id="execution-retries" type="number" min="0" max="5" value="0" />
+                </label>
+              </div>
+              <div class="check-row">
+                <label><input id="execution-headless" type="checkbox" checked /> 无头模式</label>
+                <label><input id="execution-screenshot" type="checkbox" checked /> 截图</label>
+                <label><input id="execution-video" type="checkbox" checked /> 视频</label>
+              </div>
+              <div class="actions">
+                <button id="create-execution-button">创建执行任务</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="member-create-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">项目成员</p>
+              <h2>添加项目成员</h2>
+              <p class="meta">请选择平台用户并授予项目角色。</p>
+            </div>
+            <button id="member-create-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <div class="member-form modal-form">
+              <label>
+                用户
+                <select id="member-user-select"></select>
+              </label>
+              <label>
+                项目角色
+                <select id="member-role-select">
+                  <option value="project_admin">项目管理员</option>
+                  <option value="test_lead">测试负责人</option>
+                  <option value="tester" selected>测试人员</option>
+                  <option value="viewer">只读成员</option>
+                </select>
+              </label>
+              <button id="add-member-button">添加成员</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="project-create-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">项目信息</p>
+              <h2 id="project-modal-title">新建项目</h2>
+              <p id="project-modal-summary" class="meta">创建后将自动授予当前账号项目管理员权限。</p>
+            </div>
+            <button id="project-create-close" class="secondary">关闭</button>
+          </div>
+          <div class="detail">
+            <div class="project-form">
+              <label>项目名称<input id="new-project-name" placeholder="例如：会员中心自动化" /></label>
+              <label>项目编码<input id="new-project-code" placeholder="例如：member-center" /></label>
+              <label id="project-default-url-row">默认环境 URL<input id="new-project-url" placeholder="https://example.test" /></label>
+              <label id="project-members-row">初始成员<select id="new-project-members" multiple size="6"></select></label>
+              <label id="project-status-row" class="hidden">
+                项目状态
+                <select id="edit-project-status">
+                  <option value="1">启用</option>
+                  <option value="2">禁用</option>
+                </select>
+              </label>
+              <label>项目描述<textarea id="new-project-desc" placeholder="项目说明"></textarea></label>
+              <div class="actions">
+                <button id="create-project-button">创建项目</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="environment-manage-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">环境设置</p>
+              <h2 id="environment-manage-title">环境设置</h2>
+              <p id="environment-manage-summary" class="meta"></p>
+            </div>
+            <button id="environment-manage-close" class="secondary">关闭</button>
+          </div>
+          <div id="environment-manage-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="environment-form-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">环境信息</p>
+              <h2 id="environment-form-title">环境信息</h2>
+            </div>
+            <button id="environment-form-close" class="secondary">关闭</button>
+          </div>
+          <div id="environment-form-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="module-manage-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">用例模块</p>
+              <h2 id="module-manage-title">模块设置</h2>
+              <p id="module-manage-summary" class="meta"></p>
+            </div>
+            <button id="module-manage-close" class="secondary">关闭</button>
+          </div>
+          <div id="module-manage-body" class="detail"></div>
+        </div>
+      </section>
+
+      <section id="module-form-modal" class="modal-backdrop hidden" aria-modal="true" role="dialog">
+        <div class="modal-page modal-page-narrow">
+          <div class="modal-head">
+            <div>
+              <p class="eyebrow">用例模块</p>
+              <h2 id="module-form-title">新增模块</h2>
+            </div>
+            <button id="module-form-close" class="secondary">关闭</button>
+          </div>
+          <div id="module-form-body" class="detail"></div>
+        </div>
+      </section>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

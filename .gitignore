@@ -1,0 +1,39 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Node / build
+**/node_modules/
+**/dist/
+coverage/
+
+# Runtime output
+**/logs/
+**/artifacts/
+*.log
+npm-debug.log*
+
+# Python / local scripts
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment / secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+!**/.env.*.example
+
+# Certificates / keys
+*.pem
+*.key
+*.p12
+
+# Misc temporary files
+*.pid
+*.seed
