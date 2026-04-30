@@ -132,50 +132,37 @@ npx playwright install chromium
 
 如果你准备直接使用本机已安装的 Chrome 或 Edge，也可以在执行任务时切换浏览器。
 
-## 按顺序启动整个项目
+## 启动整个项目
 
-### 方式一：推荐，直接用根目录脚本
+根目录现在只保留全量启停入口，推荐始终使用 `all` 脚本管理本地服务。
 
-#### 第 1 步：启动 backend 和 worker
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\start-dev.ps1
-```
-
-这一步会同时启动：
-
-- Backend server
-- Execution worker
-
-#### 第 2 步：启动 agent
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\start-agent.ps1
-```
-
-#### 第 3 步：检查服务状态
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\status-all.ps1
-```
-
-#### 第 4 步：打开管理台
-
-- 管理台首页：`http://localhost:3000/`
-- 后端健康检查：`http://localhost:3000/health`
-- Agent 健康检查：`http://127.0.0.1:37665/health`
-
-### 方式二：一步启动全部服务
+### 第 1 步：启动全部服务
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File .\start-all.ps1
 ```
 
-这个脚本内部会先启动 `backend + worker`，再启动 `agent`。
+这个脚本内部会按顺序启动：
+
+1. `backend` API 服务
+2. `backend` 执行 worker
+3. `agent` 本地录制服务
+
+### 第 2 步：检查服务状态
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\status-all.ps1
+```
+
+### 第 3 步：打开管理台
+
+- 管理台首页：`http://localhost:3000/`
+- 后端健康检查：`http://localhost:3000/health`
+- Agent 健康检查：`http://127.0.0.1:37665/health`
 
 ## 手动启动顺序
 
-如果你不想用根目录脚本，也可以手动按顺序开三个进程：
+如果你只是想了解 `start-all.ps1` 背后实际拉起的顺序，可以参考下面这三个服务：
 
 ### 1. 启动 backend API
 
@@ -207,18 +194,6 @@ npm run serve:start
 powershell.exe -ExecutionPolicy Bypass -File .\stop-all.ps1
 ```
 
-### 只停止 backend 和 worker
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\stop-dev.ps1
-```
-
-### 只停止 agent
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\stop-agent.ps1
-```
-
 ## 日志位置
 
 ### Backend 日志
@@ -241,24 +216,6 @@ powershell.exe -ExecutionPolicy Bypass -File .\stop-agent.ps1
 |---|---|
 | `dev-tools.ps1` | 共享进程管理工具，供其它脚本复用，不直接单独执行 |
 
-### Backend + worker
-
-| 脚本 | 说明 |
-|---|---|
-| `start-dev.ps1` | 启动 backend API 服务和 execution worker |
-| `stop-dev.ps1` | 停止 backend API 服务和 execution worker |
-| `start-dev.cmd` | `start-dev.ps1` 的 CMD 包装入口 |
-| `stop-dev.cmd` | `stop-dev.ps1` 的 CMD 包装入口 |
-
-### Agent
-
-| 脚本 | 说明 |
-|---|---|
-| `start-agent.ps1` | 启动本地 Agent 服务；脚本会先编译 Agent，再启动 `dist/server.js` |
-| `stop-agent.ps1` | 停止本地 Agent 服务 |
-| `start-agent.cmd` | `start-agent.ps1` 的 CMD 包装入口 |
-| `stop-agent.cmd` | `stop-agent.ps1` 的 CMD 包装入口 |
-
 ### 全量启停
 
 | 脚本 | 说明 |
@@ -272,7 +229,7 @@ powershell.exe -ExecutionPolicy Bypass -File .\stop-agent.ps1
 
 ## 备注
 
-当前机器上 `agent` 的 `serve:dev` 依赖的 `esbuild` 可执行文件缺失，因此根目录的 `start-agent.ps1` 没有直接调用 `npm run serve:dev`，而是改成：
+当前机器上 `agent` 的 `serve:dev` 依赖的 `esbuild` 可执行文件缺失，因此根目录的 `start-all.ps1` 在启动 agent 时没有直接调用 `npm run serve:dev`，而是改成：
 
 1. 先执行 `npm run build`
 2. 再启动 `node dist/server.js`
